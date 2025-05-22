@@ -1,32 +1,58 @@
 // File: components/Room.tsx
-
-// This component MUST be a Client Component to use Liveblocks hooks
 "use client";
 
-import { useOthers, useMyPresence, useRoom } from "@liveblocks/react"; // Example hook imports
+import { useRoom } from "@liveblocks/react";
+import { Whiteboard } from "./Whiteboard";
+import { Toolbar } from "./Toolbar";
+import { Participants } from "./Participants";
 
-/**
- * This component will contain the main whiteboard application UI,
- * including the canvas, toolbar, participants, etc.
- * It uses Liveblocks hooks, so it must be a Client Component.
- */
 export function Room() {
-  // Example usage of Liveblocks hooks (will be expanded in later steps)
-  // const others = useOthers();
-  // const [myPresence, updateMyPresence] = useMyPresence();
-  // const room = useRoom();
-
-  // console.log("Room connection status:", room.connection);
-  // console.log("Number of other users:", others.length);
+  const room = useRoom();
 
   return (
-    <div className="flex flex-col h-screen w-screen items-center justify-center">
-      <h1 className="text-2xl font-bold mb-4">Collaborative Whiteboard Room</h1>
-      <p className="text-muted-foreground">
-        (Whiteboard Canvas and Toolbar will be implemented here)
-      </p>
-      {/* Placeholder for the actual whiteboard canvas and UI elements */}
-      {/* We will add Fabric.js canvas integration, toolbar, etc., in later steps */}
+    // --- Main Container ---
+    // h-screen w-screen: Fills the viewport.
+    // flex flex-col: Stacks children (Toolbar, Main Content) vertically.
+    // bg-neutral-50: Sets a light background for the whole room area.
+    // text-neutral-900: Default text color (can be overridden).
+    // overflow-hidden: Prevents scrollbars on the main container.
+    <div className="h-screen w-screen flex flex-col bg-neutral-50 text-neutral-900 overflow-hidden">
+
+      {/* --- Toolbar Section --- */}
+      {/* w-full: Full width.
+          h-[60px]: Fixed height for the toolbar area.
+          flex items-center: Vertically centers Toolbar content (needed for height).
+          px-0: No horizontal padding here; Toolbar component handles its own padding.
+          bg-white: White background for the toolbar area.
+          shadow-sm: Subtle bottom shadow for visual separation.
+          z-10: Ensures toolbar is above other content if needed. */}
+      <div className="w-full h-[60px] flex items-center px-0 bg-white shadow-sm z-10">
+        <Toolbar />
+      </div>
+
+      {/* --- Main Content Area (Whiteboard + Participants) --- */}
+      {/* flex-1: Allows this div to grow and fill remaining vertical space.
+          relative: Positioning context for the absolutely positioned Participants.
+          w-full: Ensures it takes full width below the toolbar. */}
+      <div className="flex-1 relative w-full">
+
+        {/* --- Whiteboard Canvas Area --- */}
+        {/* The Whiteboard component fills this area due to its own styles */}
+        <Whiteboard />
+
+        {/* --- Participants List Container --- */}
+        {/* absolute: Positioned relative to the parent above.
+            top-3 right-3: Placed near the top-right corner.
+            bg-white rounded-lg: Card-like appearance.
+            px-3 py-2: Internal padding.
+            h-[40px] flex items-center: Fixed height, centers content vertically.
+            shadow-md: Card shadow.
+            z-10: Ensures it's visually on top of the Whiteboard. */}
+        <div className="absolute top-3 right-3 bg-white rounded-lg px-3 py-2 h-[40px] flex items-center shadow-md z-10 hidden sm:flex">
+          <Participants />
+        </div>
+      </div>
+
     </div>
   );
 }
