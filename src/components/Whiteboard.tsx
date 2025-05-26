@@ -72,16 +72,7 @@ export type Storage = {
 const DEFAULT_PEN_COLOR = '#000000';
 const DEFAULT_PEN_WIDTH = 5;
 const DEFAULT_PEN_STROKE_UNIFORM = true;
-const TEMP_SHAPE_STROKE_COLOR = 'rgba(0, 0, 255, 0.7)';
-const TEMP_SHAPE_STROKE_WIDTH = 2;
-const TEMP_SHAPE_FILL = 'rgba(0, 0, 255, 0.1)';
-const FINAL_SHAPE_FILL = 'rgba(0,0,0,0)';
-const FINAL_SHAPE_STROKE = '#000000';
-const FINAL_SHAPE_STROKE_WIDTH = 3;
-//text constant
-const DEFAULT_TEXT_STRING = "Type here...";
-const DEFAULT_TEXT_FONT_SIZE = 24;
-const DEFAULT_TEXT_FILL = '#000000'; // Black text color
+
 const DEFAULT_ERASER_WIDTH = 50;
 
 // Helper function to get properties to include when serializing Fabric objects
@@ -467,8 +458,29 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
     // --- Continuous Transformation Event Handlers ---
 
     // --- Keyboard Event Handler for Deletion ---
+   const handleDeleteKeyDown = useCallback((e: KeyboardEvent) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && activeTool === 'select') {
+        const canvas = fabricRef.current;
+        if (!canvas) return;
+        
+        const activeObject = canvas.getActiveObject();
+        if (!activeObject) return;
 
+        const objectsToDelete = activeObject.type === 'activeSelection' 
+            ? (activeObject as fabric.ActiveSelection).getObjects()
+            : [activeObject];
 
+        objectsToDelete.forEach(obj => {
+            const objectId = obj.get('id') as string;
+            if (!objectId) return;
+            canvas.remove(obj);
+            deleteObjectFromStorage(objectId);
+        });
+
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+    }
+}, [activeTool, deleteObjectFromStorage]);
 
 
     const handleObjectMoving = useCallback((options: FabricEventWithTarget) => {
@@ -894,62 +906,6 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
         shapeOriginRef.current = null;
     }, [addObjectToStorage, addActionToUndoStack]);
 
-
-    const handleDeleteKeyDown = useCallback((e: KeyboardEvent) => {
-        if ((e.key === 'Delete' || e.key === 'Backspace') && activeTool === 'select') {
-            const canvas = fabricRef.current;
-            if (!canvas) return;
-            const activeSelection = canvas.getActiveObject();
-
-            if (activeSelection) {
-                const objectsToDelete: fabric.Object[] = activeSelection.type === 'activeSelection'
-                    ? (activeSelection as fabric.ActiveSelection).getObjects()
-                    : [activeSelection];
-
-                console.log(`Delete key pressed, attempting to delete ${objectsToDelete.length} objects.`);
-
-                // Use a batch or iterate
-                objectsToDelete.forEach(obj => {
-                    const objectId = obj.get('id') as string | undefined;
-                    if (objectId) {
-                        // --- Capture State BEFORE Deletion ---
-                        const propertiesToInclude = getFabricObjectProperties(obj);
-                        const previousData = obj.toObject(propertiesToInclude);
-                        const previousState: CanvasObjectSnapshot = {
-                            type: obj.type || 'unknown',
-                            data: previousData,
-                        };
-                        // --- End Capture State ---
-
-                        // 1. Remove locally
-                        canvas.remove(obj);
-
-                        // 2. Remove from Liveblocks storage
-                        deleteObjectFromStorage(objectId);
-
-                        // --- Add to Undo Stack ---
-                        const undoAction: UndoableAction = {
-                            type: 'DELETE',
-                            payload: { previousObjectState: previousState },
-                        };
-                        addActionToUndoStack(undoAction);
-                        // --- End Undo Stack ---
-
-                        console.log(`Object Deleted via Key (ID: ${objectId}), Pushed DELETE to Undo Stack`);
-
-                    } else {
-                        console.warn(`Object in selection missing ID, cannot delete/undo.`);
-                        // Maybe remove locally? canvas.remove(obj);
-                    }
-                });
-
-                // Deselect after processing all objects in the selection
-                canvas.discardActiveObject();
-                canvas.requestRenderAll();
-
-            } // end if(activeSelection)
-        } // end if(key check)
-    }, [activeTool, deleteObjectFromStorage, addActionToUndoStack]);
 
     const handleInteractionStart = useCallback((target: fabric.Object) => {
         const objectId = target.get('id') as string | undefined;

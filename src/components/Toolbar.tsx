@@ -27,6 +27,7 @@ interface ToolbarProps {
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
   onUndo: () => void;
   onRedo: () => void;
+  onClear: () => void;
 }
 
 export const Toolbar = ({ activeTool, setActiveTool, onUndo, onRedo }: ToolbarProps) => {
@@ -63,6 +64,7 @@ export const Toolbar = ({ activeTool, setActiveTool, onUndo, onRedo }: ToolbarPr
         <Button onClick={onRedo} variant="ghost" size="icon" aria-label="Redo" title="Redo">
           <Redo2 className="h-5 w-5" />
         </Button>
+
       </div>
     </div>
   );
