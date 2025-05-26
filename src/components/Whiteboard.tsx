@@ -152,42 +152,54 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
         (
             mutation,
             objectId: string,
-            updateData: Partial<CanvasObject['data']> // Pass only the properties to update
+            updateData: Partial<CanvasObject['data']>
         ) => {
             const objects = mutation.storage.get("objects");
             if (!objects) {
                 console.warn("Storage 'objects' list not found during update attempt.");
-                return; // Exit if the list doesn't exist
+                return;
             }
 
-            // Find the LiveObject in the LiveList whose nested 'data.id' matches the objectId
-            const objectIndex = (objects as LiveList<CanvasObject>).findIndex((obj) => obj.get("data")?.get("id") === objectId);
+            // Find the LiveObject in the LiveList whose data.id matches the objectId
+            const objectIndex = (objects as LiveList<CanvasObject>).findIndex((obj) => {
+                try {
+                    const data = obj.get("data");
+                    return data && data.get("id") === objectId;
+                } catch (error) {
+                    console.warn("Error accessing object data:", error);
+                    return false;
+                }
+            });
 
             if (objectIndex !== -1) {
-                // Get the LiveObject to update
-                const objectToUpdate = (objects as LiveList<CanvasObject>).get(objectIndex);
+                try {
+                    // Get the LiveObject to update
+                    const objectToUpdate = (objects as LiveList<CanvasObject>).get(objectIndex);
+                    if (!objectToUpdate) return;
 
-                // Ensure the object and its nested 'data' LiveObject exist
-                const nestedData = objectToUpdate?.get("data");
-                if (nestedData) {
-                    // Update the properties within the nested 'data' LiveObject
-                    console.log(`Updating object ID: ${objectId} with data:`, updateData);
-                    for (const key in updateData) {
-                        // Ensure the property belongs to updateData and is not the id itself
-                        if (updateData.hasOwnProperty(key) && key !== 'id') {
-                            // Use .set(key, value) on the nested LiveObject
-                            nestedData.set(key as keyof CanvasObject['data'], updateData[key as keyof CanvasObject['data']]);
+                    // Get the nested data LiveObject
+                    const data = objectToUpdate.get("data");
+                    if (!data) return;
+
+                    // Create a new data object with updated values
+                    const newData = { ...data.toObject() };
+                    Object.entries(updateData).forEach(([key, value]) => {
+                        if (key !== 'id') {
+                            newData[key] = value;
                         }
-                    }
+                    });
+
+                    // Update the entire data object at once
+                    data.update(newData);
                     console.log(` -> Update successful for object ID: ${objectId}`);
-                } else {
-                    console.warn(`Nested 'data' LiveObject not found for object ID: ${objectId}.`);
+                } catch (error) {
+                    console.error("Error updating object:", error);
                 }
             } else {
                 console.warn(`Object ID: ${objectId} not found in storage for update.`);
             }
         },
-        [] // Dependencies for the mutation callback (usually empty)
+        []
     );
 
 
