@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Whiteboard {
+  // --- Fields ---
+
+  // Standard primary key. Using cuid() for globally unique IDs.
+  // Alternatively, you could use uuid() or an auto-incrementing integer.
+  id        String   @id @default(cuid())
+
+  // The unique identifier for the whiteboard room, matching the URL parameter.
+  // Should be unique across all whiteboards.
+  roomId    String   @unique
+
+  // Stores the serialized whiteboard data (e.g., from Fabric.js canvas.toJSON()).
+  // Using the Json type, which maps to jsonb in PostgreSQL.
+  // jsonb is efficient for storing and potentially querying JSON data.
+  // Alternatively, use String if you prefer storing it as plain text.
+  boardData Json?    // Nullable, allowing a board record to exist before data is saved.
+
+  // Timestamps managed automatically by Prisma.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Optional: Relationships (Add later for user auth/ownership) ---
+  // userId    String?  // Example: Foreign key to a User model
+  // user      User?    @relation(fields: [userId], references: [id])
+
+  // --- Optional: Indices (Add if needed for query performance) ---
+  // @@index([roomId]) // Already implicitly indexed by @unique constraint
+}
+
+// --- Optional: Add User model later ---
+// model User {
+//   id            String       @id @default(cuid())
+//   email         String?      @unique
+//   name          String?
+//   // ... other user fields ...
+//   whiteboards   Whiteboard[] // Relation to whiteboards owned by the user
+// }

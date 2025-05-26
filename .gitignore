@@ -43,3 +43,4 @@ next-env.d.ts
 # Local environment variables
 # Exclude local env files from Git to prevent committing sensitive keys
 .env*.local
+/src/generated/prisma
