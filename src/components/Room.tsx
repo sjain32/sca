@@ -26,9 +26,7 @@ export function Room() {
           bg-white: White background for the toolbar area.
           shadow-sm: Subtle bottom shadow for visual separation.
           z-10: Ensures toolbar is above other content if needed. */}
-      <div className="w-full h-[60px] flex items-center px-0 bg-white shadow-sm z-10">
-        <Toolbar />
-      </div>
+      
 
       {/* --- Main Content Area (Whiteboard + Participants) --- */}
       {/* flex-1: Allows this div to grow and fill remaining vertical space.
