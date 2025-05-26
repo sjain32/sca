@@ -2,7 +2,7 @@
 
 "use client";
 import Cursor from './Cursor';
-import { Toolbar } from './Toolbar';
+import { Toolbar } from '@/components/Toolbar';
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { fabric } from 'fabric-with-erasing';
@@ -83,6 +83,15 @@ const DEFAULT_TEXT_STRING = "Type here...";
 const DEFAULT_TEXT_FONT_SIZE = 24;
 const DEFAULT_TEXT_FILL = '#000000'; // Black text color
 const DEFAULT_ERASER_WIDTH = 50;
+
+// Helper function to get properties to include when serializing Fabric objects
+const getFabricObjectProperties = (obj: fabric.Object): string[] => {
+    const baseProps = ['id', 'type', 'left', 'top', 'angle', 'scaleX', 'scaleY', 'originX', 'originY'];
+    const specificProps = obj.type === 'i-text' ? ['text', 'fontSize', 'fontFamily', 'fill'] : 
+                         obj.type === 'path' ? ['path', 'stroke', 'strokeWidth', 'strokeUniform'] :
+                         ['width', 'height', 'radius', 'fill', 'stroke', 'strokeWidth', 'strokeUniform'];
+    return [...baseProps, ...specificProps];
+};
 
 // Throttle function with proper typing
 const throttle = <T extends (...args: unknown[]) => void>(func: T, limit: number) => {
@@ -171,32 +180,39 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
                 }
             });
 
-            if (objectIndex !== -1) {
-                try {
-                    // Get the LiveObject to update
-                    const objectToUpdate = (objects as LiveList<CanvasObject>).get(objectIndex);
-                    if (!objectToUpdate) return;
+            if (objectIndex === -1) {
+                console.warn(`Object ID: ${objectId} not found in storage for update. Skipping update.`);
+                return;
+            }
 
-                    // Get the nested data LiveObject
-                    const data = objectToUpdate.get("data");
-                    if (!data) return;
-
-                    // Create a new data object with updated values
-                    const newData = { ...data.toObject() };
-                    Object.entries(updateData).forEach(([key, value]) => {
-                        if (key !== 'id') {
-                            newData[key] = value;
-                        }
-                    });
-
-                    // Update the entire data object at once
-                    data.update(newData);
-                    console.log(` -> Update successful for object ID: ${objectId}`);
-                } catch (error) {
-                    console.error("Error updating object:", error);
+            try {
+                // Get the LiveObject to update
+                const objectToUpdate = (objects as LiveList<CanvasObject>).get(objectIndex);
+                if (!objectToUpdate) {
+                    console.warn(`Object at index ${objectIndex} not found.`);
+                    return;
                 }
-            } else {
-                console.warn(`Object ID: ${objectId} not found in storage for update.`);
+
+                // Get the nested data LiveObject
+                const data = objectToUpdate.get("data");
+                if (!data) {
+                    console.warn(`Data not found for object ID: ${objectId}`);
+                    return;
+                }
+
+                // Create a new data object with updated values
+                const newData = { ...data.toObject() };
+                Object.entries(updateData).forEach(([key, value]) => {
+                    if (key !== 'id') {
+                        newData[key] = value;
+                    }
+                });
+
+                // Update the entire data object at once
+                data.update(newData);
+                console.log(` -> Update successful for object ID: ${objectId}`);
+            } catch (error) {
+                console.error("Error updating object:", error);
             }
         },
         []
@@ -295,7 +311,7 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
             canvas.hoverCursor = 'crosshair';
             canvas.forEachObject(obj => obj.set({ evented: false, selectable: false }));
             console.log(" -> Pen Mode: Drawing ON, Selection OFF");
-        } if (activeTool === 'select') {
+        } else if (activeTool === 'select') {
             canvas.defaultCursor = 'default';
             canvas.hoverCursor = 'move';
             canvas.forEachObject(obj => {
@@ -306,7 +322,6 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
                 });
             });
             console.log(" -> Select Mode: Drawing OFF, Selection ON");
-
         } else if (activeTool === 'rectangle' || activeTool === 'circle') {
             // Shape Config (Drawing OFF, Selection OFF)
             canvas.defaultCursor = 'crosshair';
@@ -1202,13 +1217,14 @@ export const Whiteboard = ({ }: WhiteboardProps) => {
             className="relative w-full h-full bg-neutral-100 touch-none overflow-hidden"
         >
             <canvas ref={canvasRef} id="canvas" />
-            <Toolbar
-                activeTool={activeTool}
-                setActiveTool={setActiveTool}
-                onUndo={handleUndo} // Pass the undo handler
-                onRedo={handleRedo} // Pass the redo handler
-            // Potentially pass info to disable buttons later
-            />
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+                <Toolbar
+                    activeTool={activeTool}
+                    setActiveTool={setActiveTool}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                />
+            </div>
 
 
             {/* --- Render Cursors for Other Users (MODIFIED) --- */}
